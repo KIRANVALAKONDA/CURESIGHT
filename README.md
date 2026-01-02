@@ -29,7 +29,7 @@ An advanced medical symptom analysis application with dual portals for patients 
 
 ### Doctor/Admin Portal
 - **Authentication**
-  - Password-protected access 
+  - Password-protected access (Admin@22)
   
 - **Dashboard Views**
   - Recent patient queries with full details
@@ -253,12 +253,7 @@ Pre-configured in all four languages for:
 ## Future Enhancements
 
 - Doctor notes on patient queries
-- Export patient history to PDF
 - Advanced rule editor UI
 - Content management interface
+- SMS/Email notifications
 - Integration with EHR systems
-
-## License
-
-MIT License - See LICENSE file for details
-

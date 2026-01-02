@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Activity, FileText, Stethoscope, PlayCircle, StopCircle, AlertCircle, Loader2, Shield, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Activity, FileText, Stethoscope, PlayCircle, StopCircle, AlertCircle, Loader2, Shield, CheckCircle, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { useLanguageStore } from '../stores/useLanguageStore';
@@ -96,15 +97,121 @@ export function AnalysisResults({ result, onNewAnalysis }: AnalysisResultsProps)
 
   const generateSpeechText = () => {
     const parts = [];
-    parts.push(`${t('severityLevel', language)}: ${getSeverityLabel(result.severity)}.`);
-    parts.push(`${t('recommendation', language)}: ${result.recommendation}.`);
+    parts.push(`${getSeverityLabel(result.severity)}. ${result.recommendation}.`);
     if (result.reason) {
-      parts.push(`${t('explanation', language)}: ${result.reason}`);
+      parts.push(result.reason);
     }
     if (result.safe_guidance) {
-      parts.push(`${t('safeGuidance', language)}: ${result.safe_guidance}`);
+      parts.push(result.safe_guidance);
     }
     return parts.join(' ');
+  };
+
+  const downloadPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width;
+      const margin = 20;
+      const maxWidth = pageWidth - 2 * margin;
+      let yPos = 20;
+
+      // Title
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Symptom Analysis Summary', pageWidth / 2, yPos, { align: 'center' });
+      yPos += 8;
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'italic');
+      doc.text('(Educational Use Only)', pageWidth / 2, yPos, { align: 'center' });
+      yPos += 15;
+
+      // Date & Time
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const dateStr = new Date().toLocaleString(language === 'en' ? 'en-US' : language === 'hi' ? 'hi-IN' : language === 'te' ? 'te-IN' : 'kn-IN');
+      doc.text(`Date & Time: ${dateStr}`, margin, yPos);
+      yPos += 10;
+
+      // Entered Symptoms
+      doc.setFont('helvetica', 'bold');
+      doc.text('Entered Symptoms:', margin, yPos);
+      yPos += 6;
+      doc.setFont('helvetica', 'normal');
+      const symptomsLines = doc.splitTextToSize(result.disease_category || 'Not specified', maxWidth);
+      doc.text(symptomsLines, margin, yPos);
+      yPos += symptomsLines.length * 5 + 8;
+
+      // Severity Level
+      doc.setFont('helvetica', 'bold');
+      doc.text('Severity Level:', margin, yPos);
+      yPos += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.text(getSeverityLabel(result.severity), margin, yPos);
+      yPos += 10;
+
+      // Recommendation
+      doc.setFont('helvetica', 'bold');
+      doc.text('Recommendation:', margin, yPos);
+      yPos += 6;
+      doc.setFont('helvetica', 'normal');
+      const recLines = doc.splitTextToSize(result.recommendation, maxWidth);
+      doc.text(recLines, margin, yPos);
+      yPos += recLines.length * 5 + 8;
+
+      // Explanation
+      if (result.reason) {
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.setFont('helvetica', 'bold');
+        doc.text('Explanation:', margin, yPos);
+        yPos += 6;
+        doc.setFont('helvetica', 'normal');
+        const reasonLines = doc.splitTextToSize(result.reason, maxWidth);
+        doc.text(reasonLines, margin, yPos);
+        yPos += reasonLines.length * 5 + 8;
+      }
+
+      // Safe Guidance
+      if (result.safe_guidance) {
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.setFont('helvetica', 'bold');
+        doc.text('Safe Guidance:', margin, yPos);
+        yPos += 6;
+        doc.setFont('helvetica', 'normal');
+        const guidanceLines = doc.splitTextToSize(result.safe_guidance, maxWidth);
+        doc.text(guidanceLines, margin, yPos);
+        yPos += guidanceLines.length * 5 + 8;
+      }
+
+      // Medical Disclaimer
+      if (yPos > 230) {
+        doc.addPage();
+        yPos = 20;
+      }
+      yPos += 10;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('MEDICAL DISCLAIMER:', margin, yPos);
+      yPos += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const disclaimerText = 'This document is generated for educational purposes only and does not replace professional medical advice. This is not a medical diagnosis or prescription. Always consult a qualified healthcare provider for accurate diagnosis, treatment recommendations, and personalized medical advice.';
+      const disclaimerLines = doc.splitTextToSize(disclaimerText, maxWidth);
+      doc.text(disclaimerLines, margin, yPos);
+
+      // Save PDF
+      doc.save(`Symptom-Analysis-${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('PDF downloaded successfully');
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast.error('Failed to generate PDF');
+    }
   };
 
   const speak = async () => {
@@ -299,6 +406,14 @@ export function AnalysisResults({ result, onNewAnalysis }: AnalysisResultsProps)
       {/* Enhanced Action Buttons with Better Visual Hierarchy */}
       <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 animate-slide-up-fade">
         <Button
+          onClick={downloadPDF}
+          size="lg"
+          className="h-16 sm:h-20 text-xl sm:text-2xl font-black rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:to-pink-700 text-white shadow-2xl hover:shadow-3xl w-full transform hover:scale-105 transition-all duration-500 border-3 border-white/30"
+        >
+          <Download className="w-7 h-7 sm:w-8 sm:h-8 mr-3" />
+          <span className="truncate">{t('downloadPDF', language)}</span>
+        </Button>
+        <Button
           onClick={speak}
           disabled={isLoadingAudio}
           size="lg"
@@ -328,7 +443,7 @@ export function AnalysisResults({ result, onNewAnalysis }: AnalysisResultsProps)
         <Button
           onClick={onNewAnalysis}
           size="lg"
-          className="h-16 sm:h-20 text-xl sm:text-2xl font-black rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-2xl hover:shadow-3xl w-full transform hover:scale-105 transition-all duration-500 border-3 border-white/30"
+          className="h-16 sm:h-20 text-xl sm:text-2xl font-black rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white shadow-2xl hover:shadow-3xl w-full transform hover:scale-105 transition-all duration-500 border-3 border-white/30"
         >
           <Activity className="w-7 h-7 sm:w-8 sm:h-8 mr-3" />
           <span className="truncate">{t('newAnalysis', language)}</span>

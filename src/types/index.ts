@@ -68,3 +68,16 @@ export interface DoctorSession {
   sessionExpiry: number;
   loginTime: number;
 }
+
+export type PortalMode = 'symptom' | 'medication';
+
+export interface MedicationInfo {
+  medicine_name: string;
+  overview: string;
+  common_uses: string;
+  dosage_info: string;
+  side_effects: string;
+  warnings: string;
+  when_to_consult: string;
+  disclaimer: string;
+}

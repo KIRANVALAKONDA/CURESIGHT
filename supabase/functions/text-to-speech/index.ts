@@ -1,31 +1,18 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-// Function to enhance text with natural pauses for better speech quality
+// Simplified text processing - faster generation
 function enhanceTextForSpeech(text: string, language: string): string {
-  let enhanced = text;
-  
-  // Add slight pauses after punctuation for more natural speech
-  enhanced = enhanced.replace(/([.!?])\s+/g, '$1 ... ');
-  enhanced = enhanced.replace(/([,;:])\s+/g, '$1 .. ');
-  
-  // For Indian languages, add pauses after common conjunctions
-  if (language === 'hi' || language === 'te' || language === 'kn') {
-    // Add brief pauses for better clarity in complex sentences
-    enhanced = enhanced.replace(/और\s+/g, 'और .. ');
-    enhanced = enhanced.replace(/మరియు\s+/g, 'మరియు .. ');
-    enhanced = enhanced.replace(/ಮತ್ತು\s+/g, 'ಮತ್ತು .. ');
-  }
-  
-  return enhanced;
+  // Return text as-is for faster processing - AI handles natural pauses
+  return text.trim();
 }
 
-// Enhanced voice mapping optimized for each language with better quality settings
-const VOICE_CONFIG: Record<string, { voice: string; speed: number; model: string; pitch?: number }> = {
-  'en': { voice: 'nova', speed: 0.95, model: 'tts-1-hd' },      // Clear, professional female (slightly slower for clarity)
-  'hi': { voice: 'onyx', speed: 0.82, model: 'tts-1-hd' },      // Deep, clear male voice (optimized for Hindi)
-  'te': { voice: 'shimmer', speed: 0.78, model: 'tts-1-hd' },   // Warm female voice (slower for Telugu script)
-  'kn': { voice: 'shimmer', speed: 0.78, model: 'tts-1-hd' },   // Warm female voice (slower for Kannada script)
+// Optimized voice settings for faster generation while maintaining quality
+const VOICE_CONFIG: Record<string, { voice: string; speed: number; model: string }> = {
+  'en': { voice: 'nova', speed: 1.0, model: 'tts-1-hd' },      // Fast, clear female
+  'hi': { voice: 'onyx', speed: 0.9, model: 'tts-1-hd' },      // Faster Hindi
+  'te': { voice: 'shimmer', speed: 0.85, model: 'tts-1-hd' },   // Faster Telugu
+  'kn': { voice: 'shimmer', speed: 0.85, model: 'tts-1-hd' },   // Faster Kannada
 };
 
 Deno.serve(async (req) => {
@@ -95,7 +82,7 @@ Deno.serve(async (req) => {
     // Get voice configuration for language
     const config = VOICE_CONFIG[language] || VOICE_CONFIG['en'];
 
-    // Enhance text with SSML-like pauses for better natural speech
+    // Use optimized text for faster generation
     const enhancedText = enhanceTextForSpeech(text, language);
 
     // Call OnSpace AI TTS endpoint with enhanced retry logic
